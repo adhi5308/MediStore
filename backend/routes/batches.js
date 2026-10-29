@@ -1,0 +1,6 @@
+const r=require("express").Router(),B=require("../models/Batch"),M=require("../models/Medicine"),S=require("../models/StockMovement");
+r.get("/",async(q,s)=>{try{s.json({success:true,data:await B.find().populate("medicine","name category unit").sort({expiryDate:1})});}catch(e){s.status(500).json({success:false,message:e.message});}});
+r.post("/",async(q,s)=>{try{const b=await B.create(q.body);if(b.quantity>0)await S.create({medicine:b.medicine,batch:b._id,type:"received",quantity:b.quantity,note:"Opening stock"});s.status(201).json({success:true,data:b});}catch(e){s.status(400).json({success:false,message:e.code===11000?"Batch number already exists for this medicine.":e.message});}});
+r.put("/:id",async(q,s)=>{try{const b=await B.findByIdAndUpdate(q.params.id,q.body,{new:true,runValidators:true});if(!b)return s.status(404).json({success:false,message:"Batch not found"});s.json({success:true,data:b});}catch(e){s.status(400).json({success:false,message:e.message});}});
+r.delete("/:id",async(q,s)=>{try{await S.deleteMany({batch:q.params.id});const b=await B.findByIdAndDelete(q.params.id);if(!b)return s.status(404).json({success:false,message:"Batch not found"});s.json({success:true,message:"Batch deleted"});}catch(e){s.status(500).json({success:false,message:e.message});}});
+module.exports=r;
